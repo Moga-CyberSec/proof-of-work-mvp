@@ -1,43 +1,50 @@
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 import requests
 
-app = FastAPI(title="Proof-of-Work Code Analyzer")
+app = FastAPI()
 
-@app.get("/", response_class=HTMLResponse)
-def home():
-    with open("index.html", "r") as f:
-        return f.read()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.get("/analyze/{owner}/{repo}")
-def analyze_repo(owner: str, repo: str):
-    repo_url = f"https://api.github.com/repos/{owner}/{repo}"
-    response = requests.get(repo_url)
+@app.get("/")
+def read_index():
+    return FileResponse("index.html")
+
+@app.get("/verify/{owner}/{repo}")
+def verify_repo(owner: str, repo: str):
+    url = f"https://api.github.com/repos/{owner}/{repo}"
+    headers = {"Accept": "application/vnd.github.v3+json"}
+    
+    response = requests.get(url, headers=headers)
     
     if response.status_code != 200:
-        return {"error": "Repository not found or is private."}
-    
+        raise HTTPException(status_code=404, detail="Repository not found")
+        
     data = response.json()
     
-    readme_check = requests.get(f"https://raw.githubusercontent.com/{owner}/{repo}/main/README.md")
-    has_readme = readme_check.status_code == 200
+    # Extract live repository metrics
+    stars = data.get("stargazers_count", 0)
+    has_description = 15 if data.get("description") else 0
+    has_license = 15 if data.get("license") else 0
+    language = data.get("language") or "Code"
     
-    score = 40
-    if has_readme:
-        score += 30
-    if data.get("language") == "Python":
-        score += 15
-    if data.get("stargazers_count", 0) > 0:
-        score += 15
-
+    # Calculate a dynamic score out of 100
+    base_score = 50
+    star_score = min(stars * 2, 20)  # Max 20 points from stars
+    total_score = min(base_score + star_score + has_description + has_license, 100)
+    
+    status = "VERIFIED CANDIDATE" if total_score >= 70 else "NEEDS IMPROVEMENT"
+    
     return {
         "candidate_repo": f"{owner}/{repo}",
-        "primary_language": data.get("language", "Not specified"),
-        "has_documentation": has_readme,
-        "proof_of_work_score": f"{score}/100",
-        "badge_status": "VERIFIED CANDIDATE" if score >= 70 else "NEEDS IMPROVEMENT"
+        "primary_language": language,
+        "score": total_score,
+        "status": status,
+        "stars": stars
     }
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
