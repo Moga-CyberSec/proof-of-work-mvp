@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proof-of-Work Skill Verification</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: #1e293b; border-radius: 16px; padding: 32px; width: 100%; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
+        h2 { margin-top: 0; color: #38bdf8; text-align: center; }
+        .input-group { margin-bottom: 16px; }
+        label { display: block; font-size: 14px; margin-bottom: 6px; color: #94a3b8; }
+        input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #0284c7; color: white; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        button:hover { background: #0369a1; }
+        .result-box { margin-top: 24px; padding: 20px; border-radius: 12px; background: #0f172a; border: 1px solid #334155; display: none; }
+        .badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 12px; text-transform: uppercase; margin-bottom: 12px; }
+        .verified { background: #059669; color: #ecfdf5; }
+        .score { font-size: 36px; font-weight: bold; color: #38bdf8; margin: 10px 0; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Proof-of-Work Verifier</h2>
+    <div class="input-group">
+        <label>GitHub Username (Owner)</label>
+        <input type="text" id="owner" placeholder="e.g. psf">
+    </div>
+    <div class="input-group">
+        <label>Repository Name</label>
+        <input type="text" id="repo" placeholder="e.g. requests">
+    </div>
+    <button onclick="analyzeRepo()">Verify Project Code</button>
+
+    <div class="result-box" id="resultBox">
+        <span class="badge verified" id="badgeStatus">VERIFIED</span>
+        <div>Candidate Repo: <strong id="repoName">-</strong></div>
+        <div>Primary Language: <strong id="langName">-</strong></div>
+        <div class="score" id="scoreDisplay">0/100</div>
+        <small style="color: #94a3b8;">Automated Proof-of-Work Verification Engine</small>
+    </div>
+</div>
+
+<script>
+    async function analyzeRepo() {
+        const owner = document.getElementById('owner').value;
+        const repo = document.getElementById('repo').value;
+        if(!owner || !repo) return alert("Please enter both Owner and Repository!");
+
+        const response = await fetch(`/analyze/${owner}/${repo}`);
+        const data = await response.json();
+
+        if(data.error) {
+            alert(data.error);
+            return;
+        }
+
+        document.getElementById('repoName').innerText = data.candidate_repo;
+        document.getElementById('langName').innerText = data.primary_language;
+        document.getElementById('scoreDisplay').innerText = data.proof_of_work_score;
+        document.getElementById('badgeStatus').innerText = data.badge_status;
+        document.getElementById('resultBox').style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
