@@ -28,15 +28,13 @@ def verify_repo(owner: str, repo: str):
         
     data = response.json()
     
-    # Extract live repository metrics
     stars = data.get("stargazers_count", 0)
     has_description = 15 if data.get("description") else 0
     has_license = 15 if data.get("license") else 0
     language = data.get("language") or "Code"
     
-    # Calculate a dynamic score out of 100
     base_score = 50
-    star_score = min(stars * 2, 20)  # Max 20 points from stars
+    star_score = min(stars * 2, 20)
     total_score = min(base_score + star_score + has_description + has_license, 100)
     
     status = "VERIFIED CANDIDATE" if total_score >= 70 else "NEEDS IMPROVEMENT"
